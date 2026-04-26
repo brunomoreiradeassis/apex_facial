@@ -7,7 +7,20 @@ const db = require('./db');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// Configuração de CORS Ultra-Permissiva
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Monitor de Requisições (Log)
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(express.json());
 
 // Garantir que a pasta de uploads exista
