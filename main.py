@@ -82,39 +82,53 @@ class ApexFacialApp(ctk.CTk):
     def sync_and_load(self):
         """Baixa fotos novas do Railway e carrega encodings localmente."""
         try:
-            self.status_text.configure(text="Sincronizando Nuvem...", text_color="#3b82f6")
-            response = requests.get(f"{API_URL}/cadastros", timeout=10)
+            print(f"Tentando conectar em: {API_URL}/cadastros")
+            self.status_text.configure(text="Conectando ao Servidor...", text_color="#3b82f6")
+            
+            response = requests.get(f"{API_URL}/cadastros", timeout=30)
+            print(f"Resposta do Servidor: {response.status_code}")
             
             if response.status_code == 200:
                 cadastros = response.json()
+                print(f"Total de registros encontrados: {len(cadastros)}")
+                
+                if len(cadastros) == 0:
+                    print("AVISO: Nenhum cadastro encontrado no banco de dados.")
+                    self.status_text.configure(text="Banco de Dados Vazio", text_color="yellow")
+                    return
+
                 new_encodings = []
                 new_metadata = []
                 
                 for p in cadastros:
-                    if not p['url_facial'] or p['acesso_bloqueado'] == 'sim': continue
+                    if not p['url_facial'] or p['acesso_bloqueado'] == 'sim': 
+                        print(f"Pulando {p.get('nome_completo', 'Sem Nome')} (Sem foto ou bloqueado)")
+                        continue
                     
-                    # Sanitizar nome para arquivo (remover caracteres que o Windows não aceita)
                     nome_limpo = "".join([c for c in p['nome_completo'] if c.isalnum() or c in (' ', '_')]).strip().replace(' ', '_')
                     cpf_limpo = p['cpf'].replace('.', '').replace('-', '')
                     
                     local_filename = f"{nome_limpo}_{cpf_limpo}.jpg"
                     local_path = os.path.join(self.rostos_path, local_filename)
 
-                    # 1. Baixar se não existir localmente
                     if not os.path.exists(local_path):
                         img_url = p['url_facial']
                         if img_url.startswith('/'): img_url = API_URL + img_url
                         
-                        print(f"Baixando: {local_filename}")
-                        img_resp = requests.get(img_url, timeout=10)
-                        
-                        if img_resp.status_code == 200 and 'image' in img_resp.headers.get('Content-Type', ''):
-                            with open(local_path, 'wb') as f: f.write(img_resp.content)
-                        else:
-                            print(f"Erro ao baixar {img_url}: Status {img_resp.status_code}")
+                        print(f"Baixando nova biometria: {local_filename} de {img_url}")
+                        try:
+                            img_resp = requests.get(img_url, timeout=20)
+                            if img_resp.status_code == 200 and 'image' in img_resp.headers.get('Content-Type', ''):
+                                with open(local_path, 'wb') as f: f.write(img_resp.content)
+                                print(f"Sucesso: {local_filename} salvo.")
+                            else:
+                                print(f"Falha ao baixar imagem: Status {img_resp.status_code}")
+                                continue
+                        except Exception as e:
+                            print(f"Erro no download de {local_filename}: {e}")
                             continue
 
-                    # 2. Carregar encoding
+                    print(f"Processando biometria local: {local_filename}")
                     try:
                         image = face_recognition.load_image_file(local_path)
                         face_enc = face_recognition.face_encodings(image)
@@ -126,22 +140,28 @@ class ApexFacialApp(ctk.CTk):
                                 "categoria": p['categoria']
                             })
                             self.access_cache[p['cpf']] = (p['categoria'].lower() == "proprietario")
+                            print(f"Rosto de {p['nome_completo']} carregado com sucesso.")
+                        else:
+                            print(f"AVISO: Nenhum rosto detectado na imagem de {p['nome_completo']}.")
                     except Exception as e:
                         print(f"Erro ao processar {local_filename}: {e}")
-                        if os.path.exists(local_path): os.remove(local_path) # Remove se estiver corrompido
+                        if os.path.exists(local_path): os.remove(local_path)
 
                 self.known_face_encodings = new_encodings
                 self.known_face_metadata = new_metadata
+                print(f"Sincronização concluída. {len(new_metadata)} rostos ativos.")
                 self.status_text.configure(text="Sistema Pronto", text_color="white")
                 
-                # Iniciar thread para atualizar cache de visitas em background a cada 1 min
                 threading.Thread(target=self.background_permission_sync, daemon=True).start()
                 
             else:
-                self.status_text.configure(text="Erro API", text_color="red")
+                print(f"Erro na API: {response.status_code}")
+                self.status_text.configure(text=f"Erro API ({response.status_code})", text_color="red")
         except Exception as e:
-            self.status_text.configure(text="Erro de Conexão", text_color="red")
-            print(f"Erro Sync: {e}")
+            print(f"Erro crítico na sincronização: {e}")
+            self.status_text.configure(text="Erro de Conexão - Tentando...", text_color="orange")
+            time.sleep(10)
+            threading.Thread(target=self.sync_and_load, daemon=True).start()
 
     def background_permission_sync(self):
         """Atualiza o cache de quem pode entrar hoje sem travar a câmera."""
@@ -150,11 +170,11 @@ class ApexFacialApp(ctk.CTk):
                 for meta in self.known_face_metadata:
                     if meta['categoria'].lower() == "proprietario": continue
                     
-                    resp = requests.get(f"{API_URL}/portaria/verificar/{meta['cpf']}", timeout=5)
+                    resp = requests.get(f"{API_URL}/portaria/verificar/{meta['cpf']}", timeout=15)
                     if resp.status_code == 200:
                         self.access_cache[meta['cpf']] = resp.json().get('permitido', False)
-                time.sleep(60) # Atualiza a cada 1 minuto
-            except: time.sleep(10)
+                time.sleep(60)
+            except: time.sleep(20)
 
     def update_video(self):
         ret, frame = self.cap.read()
