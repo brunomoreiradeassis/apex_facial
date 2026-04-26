@@ -47,10 +47,11 @@ const migrarBanco = async () => {
 };
 migrarBanco();
 
-// Garantir que a pasta de uploads exista
+// Garantir que a pasta de uploads exista (Caminho Absoluto)
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log("Pasta uploads criada em:", uploadDir);
 }
 
 // Servir arquivos estáticos (fotos de rostos)
@@ -64,9 +65,9 @@ app.get('/health', (req, res) => {
     res.json({ status: 'online', timestamp: new Date() });
 });
 
-// Configuração do Multer para upload de fotos no disco local do container (Railway)
+// Configuração do Multer (Usando Caminho Absoluto)
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
+    destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
