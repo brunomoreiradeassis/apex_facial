@@ -35,13 +35,24 @@ app.get('/', (req, res) => {
     res.json({ message: 'API APEX Facial rodando no Railway!' });
 });
 
+// Rota de diagnóstico de banco
+app.get('/health', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT 1 as ok');
+        res.json({ status: 'ok', db: 'connected', result: rows });
+    } catch (err) {
+        res.status(500).json({ status: 'error', detail: err.message, code: err.code });
+    }
+});
+
 // 1. Tabela: Cadastros
 app.get('/cadastros', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM Cadastros');
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Erro /cadastros:', err);
+        res.status(500).json({ error: err.message, code: err.code, sqlState: err.sqlState });
     }
 });
 
