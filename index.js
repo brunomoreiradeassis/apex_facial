@@ -167,6 +167,16 @@ app.post('/autenticacao/login', async (req, res) => {
     }
 });
 
+app.delete('/cadastros/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.query('DELETE FROM Cadastros WHERE id = ?', [id]);
+        res.json({ message: 'Cadastro removido com sucesso' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor Node.js rodando na porta ${PORT}`);
