@@ -51,11 +51,6 @@ const upload = multer({ storage });
 // ROTAS PARA O TOTEN E PAINEL DA PORTARIA
 // ==========================================
 
-// Rota de teste
-app.get('/', (req, res) => {
-    res.json({ message: 'API APEX Facial rodando no Railway!' });
-});
-
 // Rota de diagnóstico de banco
 app.get('/health', async (req, res) => {
     try {
