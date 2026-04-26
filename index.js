@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 require('dotenv').config();
 
@@ -9,8 +10,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Garantir que a pasta de uploads exista
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
 // Servir arquivos estáticos (fotos de rostos)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // Configuração do Multer para upload de fotos no disco local do container (Railway)
 const storage = multer.diskStorage({
