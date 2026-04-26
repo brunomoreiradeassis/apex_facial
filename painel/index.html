@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APEX Facial | Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer components {
+            .glass { @apply bg-white/10 backdrop-blur-md border border-white/20; }
+            .dark .glass { @apply bg-black/40 backdrop-blur-lg border border-white/10; }
+            .nav-item { @apply flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:text-brand-500 hover:bg-brand-500/10 transition-all cursor-pointer; }
+            .nav-item.active { @apply text-brand-500 bg-brand-500/10 font-bold; }
+            .card { @apply bg-white dark:bg-[#121212] p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-slate-100 min-h-screen">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900 px-4">
+        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10"></div>
+        <div class="relative w-full max-w-md p-10 glass rounded-[2.5rem] shadow-2xl border border-white/20">
+            <div class="text-center mb-10">
+                <div class="w-16 h-16 bg-brand-600 rounded-2xl mx-auto flex items-center justify-center text-white mb-4 shadow-xl shadow-brand-500/30">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-4xl font-black tracking-tight">APEX<span class="text-brand-500">FACIAL</span></h1>
+                <p class="text-slate-400 mt-2">Portal de Segurança e Acesso</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">E-mail</label>
+                    <input type="email" id="login-email" class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition-all placeholder:text-slate-600" placeholder="admin@apex.com" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Senha</label>
+                    <input type="password" id="login-password" class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition-all placeholder:text-slate-600" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="w-full py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl shadow-xl shadow-brand-600/30 transition-all active:scale-[0.98]">
+                    ENTRAR NO SISTEMA
+                </button>
+            </form>
+            <p id="login-error" class="text-red-400 text-sm text-center mt-6 font-semibold"></p>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="main-panel" class="hidden flex flex-col md:flex-row min-h-screen opacity-0 transition-opacity duration-500">
+        
+        <!-- Sidebar -->
+        <aside class="w-full md:w-80 bg-white dark:bg-[#0a0a0a] border-r border-slate-200 dark:border-white/5 flex flex-col p-8 z-50">
+            <div class="flex items-center gap-3 mb-12 px-2">
+                <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white">
+                    <i data-lucide="camera" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-2xl font-black">APEX<span class="text-brand-500">F.</span></h2>
+            </div>
+            
+            <nav class="flex-1 space-y-3">
+                <div class="nav-item active" data-target="page-dashboard">
+                    <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-target="page-cadastros">
+                    <i data-lucide="users"></i> <span>Pessoas</span>
+                </div>
+                <div class="nav-item" data-target="page-portaria">
+                    <i data-lucide="key"></i> <span>Portaria</span>
+                </div>
+                <div class="nav-item" data-target="page-historico">
+                    <i data-lucide="clock"></i> <span>Histórico</span>
+                </div>
+            </nav>
+
+            <div class="mt-auto pt-8 border-t border-slate-100 dark:border-white/5 space-y-4">
+                <div class="nav-item text-slate-400" data-target="page-config">
+                    <i data-lucide="settings"></i> <span>Configurações</span>
+                </div>
+                <button id="logout-btn" class="flex items-center gap-4 px-4 py-4 w-full text-red-500 hover:bg-red-500/10 rounded-2xl transition-all font-bold">
+                    <i data-lucide="log-out"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            <!-- Header -->
+            <header class="h-24 bg-white/80 dark:bg-[#050505]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-10 flex items-center justify-between sticky top-0 z-40">
+                <div class="flex flex-col">
+                    <h3 id="current-page-title" class="text-xl font-black">Dashboard</h3>
+                    <p class="text-sm text-slate-400" id="date-now">Carregando data...</p>
+                </div>
+                <div class="flex items-center gap-8">
+                    <button id="theme-toggle" class="w-12 h-12 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
+                        <i data-lucide="moon" class="dark:hidden"></i>
+                        <i data-lucide="sun" class="hidden dark:block text-yellow-500"></i>
+                    </button>
+                    <div class="flex items-center gap-4 border-l border-slate-200 dark:border-white/5 pl-8">
+                        <div class="text-right hidden sm:block">
+                            <p id="user-name" class="text-sm font-black">Porteiro Online</p>
+                            <span class="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Sincronizado</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-500/20">A</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content Container -->
+            <div class="p-10">
+                
+                <!-- PAGE: DASHBOARD -->
+                <section id="page-dashboard" class="page block space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <!-- Metrics Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div class="card bg-gradient-to-br from-brand-600 to-indigo-700 !border-0 text-white">
+                            <i data-lucide="users" class="mb-4 opacity-50"></i>
+                            <p class="text-brand-100 text-sm font-semibold">Total Cadastros</p>
+                            <h4 id="stat-total-cadastros" class="text-4xl font-black mt-2">0</h4>
+                        </div>
+                        <div class="card">
+                            <i data-lucide="calendar-check" class="mb-4 text-green-500"></i>
+                            <p class="text-slate-400 text-sm font-semibold">Autorizados Hoje</p>
+                            <h4 id="stat-total-visitas" class="text-4xl font-black mt-2">0</h4>
+                        </div>
+                        <div class="card">
+                            <i data-lucide="alert-circle" class="mb-4 text-orange-500"></i>
+                            <p class="text-slate-400 text-sm font-semibold">Acessos Bloqueados</p>
+                            <h4 class="text-4xl font-black mt-2 text-orange-500">0</h4>
+                        </div>
+                        <div class="card">
+                            <i data-lucide="clock" class="mb-4 text-indigo-500"></i>
+                            <p class="text-slate-400 text-sm font-semibold">Tempo de Resposta</p>
+                            <h4 class="text-4xl font-black mt-2 text-indigo-500">12ms</h4>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="card">
+                            <h5 class="font-black mb-6 flex items-center gap-2">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-brand-500"></i> Fluxo de Acesso Semanal
+                            </h5>
+                            <canvas id="chart-acessos" height="200"></canvas>
+                        </div>
+                        <div class="card">
+                            <h5 class="font-black mb-6 flex items-center gap-2">
+                                <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-500"></i> Composição por Categoria
+                            </h5>
+                            <canvas id="chart-categorias" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Table -->
+                    <div class="card overflow-hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h5 class="font-black">Atividade Recente</h5>
+                            <button class="text-brand-500 text-sm font-bold">Ver tudo</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left" id="table-recent-activity">
+                                <thead class="text-xs uppercase text-slate-500 bg-slate-50 dark:bg-white/5">
+                                    <tr>
+                                        <th class="p-4">Pessoa</th>
+                                        <th class="p-4">Tipo</th>
+                                        <th class="p-4">Hora</th>
+                                        <th class="p-4 text-right">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PAGE: CADASTROS -->
+                <section id="page-cadastros" class="page hidden space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div class="flex justify-between items-center bg-white dark:bg-[#121212] p-8 rounded-3xl border border-slate-200 dark:border-white/5">
+                        <div class="flex flex-col">
+                            <h2 class="text-3xl font-black">Base de Biometria</h2>
+                            <p class="text-slate-400">Gerencie proprietários e visitantes cadastrados</p>
+                        </div>
+                        <button onclick="openModal('modal-pessoa')" class="px-8 py-4 bg-brand-600 text-white font-black rounded-2xl hover:bg-brand-500 transition-all shadow-xl shadow-brand-500/20">
+                            NOVO CADASTRO
+                        </button>
+                    </div>
+                    <div class="card p-0 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table id="table-pessoas" class="w-full text-left">
+                                <thead class="bg-slate-50 dark:bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest">
+                                    <tr>
+                                        <th class="p-6">Pessoa</th>
+                                        <th class="p-6">CPF</th>
+                                        <th class="p-6">Categoria</th>
+                                        <th class="p-6">Telefone</th>
+                                        <th class="p-6 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-white/5"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PAGE: PORTARIA -->
+                <section id="page-portaria" class="page hidden space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div class="flex justify-between items-center bg-white dark:bg-[#121212] p-8 rounded-3xl border border-slate-200 dark:border-white/5">
+                        <div class="flex flex-col">
+                            <h2 class="text-3xl font-black">Autorizações</h2>
+                            <p class="text-slate-400">Crie e gerencie liberações de acesso por CPF</p>
+                        </div>
+                        <button onclick="openModal('modal-visita')" class="px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20">
+                            AUTORIZAR ACESSO
+                        </button>
+                    </div>
+                    <!-- Mais conteúdo da portaria aqui se necessário -->
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: PESSOA (ADJUSTED) -->
+    <div id="modal-pessoa" class="modal fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="bg-white dark:bg-[#121212] w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div class="p-10 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Novo Registro Facial</h3>
+                <button onclick="closeAllModals()" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <form id="form-cadastro" class="p-10 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" id="cad-nome" placeholder="Nome Completo" class="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                    <input type="text" id="cad-cpf" placeholder="CPF" class="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                    <select id="cad-categoria" class="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="Proprietario">Proprietário</option>
+                        <option value="Parentesco">Parentesco</option>
+                        <option value="Visitante">Visitante</option>
+                        <option value="Prestador">Prestador</option>
+                        <option value="Esporadico">Esporádico</option>
+                    </select>
+                    <input type="text" id="cad-tel" placeholder="Telefone" class="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                </div>
+                <div class="p-8 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-center">
+                    <label for="cad-foto" class="cursor-pointer group">
+                        <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto mb-4 text-brand-500 group-hover:scale-110 transition-transform"></i>
+                        <p class="font-bold">Arraste ou clique para enviar a foto</p>
+                        <input type="file" id="cad-foto" accept="image/*" class="hidden" required>
+                    </label>
+                </div>
+                <button type="submit" class="w-full py-5 bg-brand-600 text-white font-black rounded-2xl shadow-xl hover:bg-brand-500">SINCRONIZAR NA NUVEM</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: VISITA (ADJUSTED) -->
+    <div id="modal-visita" class="modal fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="bg-white dark:bg-[#121212] w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div class="p-10 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                <h3 class="text-2xl font-black">Autorizar Acesso Completo</h3>
+                <button onclick="closeAllModals()" class="text-slate-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <form id="form-visita" class="p-10 space-y-10">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div class="space-y-4">
+                        <span class="text-xs font-black uppercase text-brand-500 tracking-widest">Visitante / Prestador</span>
+                        <input type="text" id="vis-nome-cat" placeholder="Nome Completo" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                        <input type="text" id="vis-cpf-cat" placeholder="CPF" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                        <input type="text" id="vis-tel-cat" placeholder="Telefone" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500" required>
+                    </div>
+                    <div class="space-y-4">
+                        <span class="text-xs font-black uppercase text-indigo-500 tracking-widest">Agendamento</span>
+                        <input type="date" id="vis-data" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <input type="time" id="vis-horario" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <select id="vis-categoria" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Visitante">Visitante</option>
+                            <option value="Parentesco">Parentesco</option>
+                            <option value="Prestador">Prestador</option>
+                            <option value="Esporadico">Esporádico</option>
+                        </select>
+                    </div>
+                    <div class="space-y-4">
+                        <span class="text-xs font-black uppercase text-green-500 tracking-widest">Proprietário Responsável</span>
+                        <input type="text" id="vis-nome-prop" placeholder="Nome Completo" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="vis-cpf-prop" placeholder="CPF" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="vis-tel-prop" placeholder="Telefone" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-green-500" required>
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-500">FINALIZAR AUTORIZAÇÃO</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
