@@ -1,4 +1,6 @@
-const API_URL = "https://apexfacial-production.up.railway.app";
+const API_URL = window.location.hostname.includes('railway.app') 
+    ? window.location.origin 
+    : "https://apexfacial-production.up.railway.app";
 
 // Estado Global
 let currentUser = null;
@@ -23,6 +25,7 @@ loginForm.addEventListener('submit', async (e) => {
     try {
         const response = await fetch(`${API_URL}/autenticacao/login`, {
             method: 'POST',
+            mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, senha })
         });
@@ -77,12 +80,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
 async function initDashboard() {
     try {
         // Buscar Cadastros para Estatísticas de Categorias
-        const resCad = await fetch(`${API_URL}/cadastros`);
+        const resCad = await fetch(`${API_URL}/cadastros`, { mode: 'cors' });
         const cadastros = await resCad.json();
         document.getElementById('stat-total-cadastros').innerText = cadastros.length;
 
         // Buscar Autorizações para o Histórico e Fluxo
-        const resPort = await fetch(`${API_URL}/portaria`);
+        const resPort = await fetch(`${API_URL}/portaria`, { mode: 'cors' });
         const autorizacoes = await resPort.json();
         
         // Filtro de visitas de hoje
@@ -182,7 +185,7 @@ async function loadRecentActivity(autorizacoes) {
         tbody.innerHTML += `
             <tr class="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                 <td class="p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 overflow-hidden">
                         <i data-lucide="user" class="w-5 h-5"></i>
                     </div>
                     <div>
@@ -221,8 +224,12 @@ async function loadCadastros() {
             tbody.innerHTML += `
                 <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     <td class="p-6 flex items-center gap-4">
-                        <img src="${urlFoto}" class="w-12 h-12 rounded-2xl object-cover ring-2 ring-brand-500/20 shadow-lg">
-                        <span class="font-black text-sm">${p.nome_completo}</span>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-white/5 overflow-hidden flex items-center justify-center shadow-lg border border-slate-200 dark:border-white/10">
+                            <img src="${urlFoto}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'text-slate-400\'><i data-lucide=\'user\'></i></div>'; lucide.createIcons();"
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <span class="font-black text-sm text-slate-900 dark:text-white">${p.nome_completo}</span>
                     </td>
                     <td class="p-6 text-sm text-slate-500 font-medium">${p.cpf}</td>
                     <td class="p-6">
@@ -245,6 +252,21 @@ async function loadCadastros() {
     }
 }
 
+// Preview de Foto
+document.getElementById('cad-foto').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    const placeholder = document.getElementById('preview-placeholder');
+    const img = document.getElementById('img-preview');
+    
+    reader.onload = function() {
+        img.src = reader.result;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+    }
+    
+    if(this.files[0]) reader.readAsDataURL(this.files[0]);
+});
+
 // Deletar Cadastro
 async function deletePessoa(id) {
     if (!confirm("Tem certeza que deseja excluir permanentemente este cadastro?")) return;
@@ -265,25 +287,59 @@ async function deletePessoa(id) {
 // CRUD e Modais
 document.getElementById('form-cadastro').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log("Iniciando envio de cadastro...");
+    
     const btn = e.target.querySelector('button');
-    btn.innerText = "ENVIANDO BIOMETRIA...";
+    const originalText = btn.innerText;
+    
+    btn.innerText = "SINCRONIZANDO...";
     btn.disabled = true;
 
-    const formData = new FormData();
-    formData.append('nome_completo', document.getElementById('cad-nome').value);
-    formData.append('cpf', document.getElementById('cad-cpf').value);
-    formData.append('categoria', document.getElementById('cad-categoria').value);
-    formData.append('telefone', document.getElementById('cad-tel').value);
-    formData.append('foto', document.getElementById('cad-foto').files[0]);
-
     try {
-        const res = await fetch(`${API_URL}/cadastros`, { method: 'POST', body: formData });
-        if (res.ok) {
-            closeAllModals();
-            loadCadastros();
+        const formData = new FormData();
+        formData.append('nome_completo', document.getElementById('cad-nome').value);
+        formData.append('cpf', document.getElementById('cad-cpf').value);
+        formData.append('categoria', document.getElementById('cad-categoria').value);
+        formData.append('telefone', document.getElementById('cad-tel').value);
+        
+        const fotoFile = document.getElementById('cad-foto').files[0];
+        if (!fotoFile) {
+            alert("Por favor, selecione uma foto!");
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
         }
-    } catch (err) { alert("Falha no upload."); }
-    finally { btn.innerText = "SINCRONIZAR NA NUVEM"; btn.disabled = false; }
+        formData.append('foto', fotoFile);
+
+        const res = await fetch(`${API_URL}/cadastros`, { 
+            method: 'POST', 
+            mode: 'cors',
+            body: formData 
+        });
+
+        const data = await res.json();
+        console.log("Resposta do servidor:", data);
+
+        if (res.ok) {
+            // Limpar formulário e fechar
+            e.target.reset();
+            document.getElementById('img-preview').classList.add('hidden');
+            document.getElementById('preview-placeholder').classList.remove('hidden');
+            
+            closeAllModals();
+            loadCadastros(); // Recarregar a lista
+            initDashboard(); // Atualizar estatísticas
+            alert("Cadastro realizado com sucesso!");
+        } else {
+            alert("Erro ao cadastrar: " + (data.error || "Erro desconhecido"));
+        }
+    } catch (err) {
+        console.error("Erro no fetch:", err);
+        alert("Falha na conexão com o servidor Railway.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
 });
 
 function openModal(id) {

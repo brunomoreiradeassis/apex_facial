@@ -32,6 +32,9 @@ if (!fs.existsSync(uploadDir)) {
 // Servir arquivos estáticos (fotos de rostos)
 app.use('/uploads', express.static(uploadDir));
 
+// Servir o Painel Web (Frontend)
+app.use(express.static(path.join(__dirname, '../painel')));
+
 // Rota de Diagnóstico
 app.get('/health', (req, res) => {
     res.json({ status: 'online', timestamp: new Date() });
