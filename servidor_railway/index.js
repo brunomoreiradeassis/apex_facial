@@ -23,6 +23,30 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+// Migração Automática (Auto-Reparo do Banco)
+const migrarBanco = async () => {
+    try {
+        console.log("Checando integridade do banco...");
+        const colunas = [
+            { tabela: 'Cadastros', coluna: 'telefone', tipo: 'VARCHAR(20)' },
+            { tabela: 'Cadastros', coluna: 'placa_veiculo', tipo: 'VARCHAR(20)' },
+            { tabela: 'Cadastros', coluna: 'numero_estacionamento', tipo: 'VARCHAR(20)' }
+        ];
+
+        for (const c of colunas) {
+            try {
+                await db.query(`ALTER TABLE ${c.tabela} ADD COLUMN ${c.coluna} ${c.tipo}`);
+                console.log(`Coluna ${c.coluna} adicionada com sucesso.`);
+            } catch (e) {
+                // Se o erro for que a coluna já existe, apenas ignoramos
+            }
+        }
+    } catch (err) {
+        console.error("Erro na migração:", err);
+    }
+};
+migrarBanco();
+
 // Garantir que a pasta de uploads exista
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
