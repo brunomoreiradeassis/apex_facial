@@ -60,7 +60,6 @@ app.get('/cadastros', async (req, res) => {
 app.post('/cadastros', upload.single('foto'), async (req, res) => {
     try {
         const { nome_completo, cpf, categoria, telefone, placa_veiculo, numero_estacionamento } = req.body;
-        // Se houver arquivo anexado, gera URL, se não envia URL nula ou um link em nuvem externo
         const url_facial = req.file ? `/uploads/${req.file.filename}` : req.body.url_facial || null;
         const acesso_bloqueado = req.body.acesso_bloqueado || 'nao';
         
@@ -68,10 +67,11 @@ app.post('/cadastros', upload.single('foto'), async (req, res) => {
             `INSERT INTO Cadastros 
              (nome_completo, cpf, categoria, telefone, url_facial, placa_veiculo, acesso_bloqueado, numero_estacionamento) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [nome_completo, cpf, categoria, telefone, url_facial, placa_veiculo, acesso_bloqueado, numero_estacionamento]
+            [nome_completo, cpf, categoria, telefone, url_facial, placa_veiculo || null, acesso_bloqueado, numero_estacionamento || null]
         );
         res.status(201).json({ id: result.insertId, message: 'Cadastro criado com sucesso', url_facial });
     } catch (err) {
+        console.error('Erro /cadastros POST:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -80,9 +80,8 @@ app.post('/cadastros', upload.single('foto'), async (req, res) => {
 app.get('/portaria/verificar/:cpf', async (req, res) => {
     try {
         const { cpf } = req.params;
-        const data_hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        const data_hoje = new Date().toISOString().split('T')[0];
         
-        // Verifica na tabela Portaria se há permissão para a data de hoje e se não está bloqueado
         const [rows] = await db.query(
             `SELECT * FROM Portaria 
              WHERE cpf_categoria = ? 
@@ -97,10 +96,10 @@ app.get('/portaria/verificar/:cpf', async (req, res) => {
     }
 });
 
-// Criar registro de visita (Feito pelo Proprietário ou Portaria)
+// Criar registro de visita completo
 app.post('/portaria', async (req, res) => {
     try {
-        const dados = req.body;
+        const d = req.body;
         const query = `INSERT INTO Portaria (
             nome_proprietario, nome_categoria, cpf_prorpietario, cpf_categoria, 
             data_visita, horario_visita, categoria, placa_veiculo, numero_estacionamento, 
@@ -109,16 +108,17 @@ app.post('/portaria', async (req, res) => {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         
         const valores = [
-            dados.nome_proprietario, dados.nome_categoria, dados.cpf_prorpietario, dados.cpf_categoria,
-            dados.data_visita, dados.horario_visita, dados.categoria, dados.placa_veiculo || null, 
-            dados.numero_estacionamento || null, dados.informacoes_visita || '', 
-            dados.url_facial_proprietario || null, dados.url_facial_categoria || null, 
-            dados.telefone_proprietario || null, dados.telefone_categoria || null
+            d.nome_proprietario, d.nome_categoria, d.cpf_prorpietario, d.cpf_categoria,
+            d.data_visita, d.horario_visita, d.categoria, d.placa_veiculo || null, 
+            d.numero_estacionamento || null, d.informacoes_visita || '', 
+            d.url_facial_proprietario || null, d.url_facial_categoria || null, 
+            d.telefone_proprietario || d.telefone_categoria, d.telefone_categoria
         ];
 
         const [result] = await db.query(query, valores);
         res.status(201).json({ id: result.insertId, message: 'Visita agendada com sucesso' });
     } catch (err) {
+        console.error('Erro /portaria POST:', err);
         res.status(500).json({ error: err.message });
     }
 });
