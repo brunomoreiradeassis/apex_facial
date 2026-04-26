@@ -96,6 +96,16 @@ app.get('/portaria/verificar/:cpf', async (req, res) => {
     }
 });
 
+// Listar todas as autorizações (Histórico/Painel)
+app.get('/portaria', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM Portaria ORDER BY data_visita DESC, horario_visita DESC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Criar registro de visita completo
 app.post('/portaria', async (req, res) => {
     try {
