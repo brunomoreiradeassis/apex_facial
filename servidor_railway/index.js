@@ -19,6 +19,11 @@ if (!fs.existsSync(uploadDir)) {
 // Servir arquivos estáticos (fotos de rostos)
 app.use('/uploads', express.static(uploadDir));
 
+// Rota de Diagnóstico
+app.get('/health', (req, res) => {
+    res.json({ status: 'online', timestamp: new Date() });
+});
+
 // Configuração do Multer para upload de fotos no disco local do container (Railway)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
